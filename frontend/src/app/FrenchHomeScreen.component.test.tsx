@@ -82,7 +82,7 @@ const frenchPatterns = Object.values(frenchHomeScreen).map(
 const notTranslated = new Set(['CornAgent', 'GitHub', 'X', 'EN', 'FR', '切换至中文', 'Switch to English'])
 
 describe('French home screen', () => {
-  it('A visitor can switch the home screen language to French and see the home screen text displayed in French.', async () => {
+  it('A visitor can switch the home screen language to French and see the home screen text displayed in French', async () => {
     const { user } = await openHomeScreen()
 
     await switchTo(user, 'FR')
@@ -97,7 +97,7 @@ describe('French home screen', () => {
     takePicture()
   })
 
-  it('The French version covers only the home screen; other pages remain untranslated for now.', async () => {
+  it('The French version covers only the home screen; other pages remain untranslated for now', async () => {
     const { user, view, home } = await openHomeScreen()
 
     await switchTo(user, 'FR')
@@ -113,7 +113,7 @@ describe('French home screen', () => {
     takePicture()
   })
 
-  it('All text, buttons, and labels visible on the home screen appear correctly in French with no leftover English words.', async () => {
+  it('All text, buttons, and labels visible on the home screen appear correctly in French with no leftover English words', async () => {
     const { user, view } = await openHomeScreen()
 
     await switchTo(user, 'FR')
@@ -127,7 +127,7 @@ describe('French home screen', () => {
     takePicture()
   })
 
-  it('French special characters such as é, à, and ç display correctly without broken symbols.', async () => {
+  it('French special characters such as é, à, and ç display correctly without broken symbols', async () => {
     const { user, view } = await openHomeScreen()
 
     await switchTo(user, 'FR')
@@ -145,7 +145,7 @@ describe('French home screen', () => {
     takePicture()
   })
 
-  it('A visitor can switch back from French to the original language and the home screen updates correctly.', async () => {
+  it('A visitor can switch back from French to the original language and the home screen updates correctly', async () => {
     const { user } = await openHomeScreen()
 
     await switchTo(user, 'FR')
@@ -162,7 +162,7 @@ describe('French home screen', () => {
     takePicture()
   })
 
-  it("The site remembers a visitor's choice of French only for their current visit, and resets to default on their next visit.", async () => {
+  it("The site remembers a visitor's choice of French only for their current visit, and resets to default on their next visit", async () => {
     const { user, view, home } = await openHomeScreen()
 
     await switchTo(user, 'FR')

@@ -10,11 +10,13 @@ interface AgentChatPageProps {
   sessionId: string | null
   userName?: string
   emptyStateFooter?: ReactNode
+  /** 应用层放入顶栏末尾的控件，组件本身不内置页面级设置。 */
+  headerActions?: ReactNode
   workspace: AgentWorkspace
   onSessionChange(sessionId: string | null): void
 }
 
-export function AgentChatPage({ sessionId, userName, workspace, onSessionChange, emptyStateFooter }: AgentChatPageProps) {
+export function AgentChatPage({ sessionId, userName, workspace, onSessionChange, emptyStateFooter, headerActions }: AgentChatPageProps) {
   const { text, t } = useI18n()
   const currentSession = workspace.session?.id === sessionId ? workspace.session : null
   const listedSession = workspace.sessions.find((session) => session.id === sessionId)
@@ -60,6 +62,7 @@ export function AgentChatPage({ sessionId, userName, workspace, onSessionChange,
         sessionTitle={currentSession?.title ?? text('当前会话', 'Current conversation')}
         onDelete={deleteSession}
       />}
+      {headerActions}
     </header>
     {sessionId !== null && !currentSession && workspace.available !== false && !workspace.error
       ? <div className="workspace-loading" role="status"><span className="spinner" aria-hidden="true" /><span>{t('openingChat')}</span></div>

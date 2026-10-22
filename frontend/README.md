@@ -72,6 +72,18 @@ npm run build
 
 界面支持简体中文与英文。新增文案集中放入 `src/i18n/catalog.ts`，通过 `useI18n().t(key, params)` 读取；键名有类型检查，动态文件名、数量等使用命名占位符。已有组件的双语 `text` 接口仍可使用。
 
+### 首页法语
+
+项目首页（`/chat` 新对话）另外支持法语。`src/i18n/frenchHomeScreen.ts` 是只覆盖首页可见文案的法语词典，键取自 `catalog.ts` 并有类型检查；未列出的键回退英文，因此其他页面保持原语言。新增首页文案时同时补上这里的法语，否则该文案在法语下显示英文。
+
+`useI18n()` 因此提供两个语言：`locale` 是当前展示语言（可能是 `fr`），`baseLocale` 是访客原本的中文或英文。合成演示内容、登录页介绍与运行时诊断使用 `baseLocale`，只有展示文案走 `locale`。
+
+法语入口是首页顶栏右侧的 `src/app/HomeLanguageSwitcher.tsx`（EN / 中文 与 FR 两个按钮），由 `App.tsx` 通过 `AgentChatPage` 的 `headerActions` 传入，共享 Agent 组件不内置页面级设置。左侧导航是首页的一部分，其标签在法语下也是法语；`/sidebar`、`/rendering`、`/usage` 与会话详情的正文不翻译。
+
+法语是**本次访问**的选择：保存在 `sessionStorage` 的 `cornagent.locale.visit`，不写入 `localStorage` 的长期语言偏好，关闭标签页后下次访问回到默认语言。侧栏的中英文切换按钮会清除这个访问选择。切换语言同步 `document.documentElement.lang`、dayjs 与 Ant Design 语言包，并保留已挂载的工作区、SSE 订阅与输入草稿。
+
+验收检查在 `src/app/FrenchHomeScreen.component.test.tsx`，渲染真实首页组件树；通过时用 `tests/harness/screenshot.ts` 调用机器上已安装的浏览器，把当时的屏幕存为 `.constat/pictures/<检查名>.png`，没有浏览器时跳过截图而不让检查失败。
+
 语言切换同步更新文档语言、日期库及组件库语言。仅翻译界面文案与应用生成的状态提示；会话标题、用户输入、模型回复、问题选项和文件名保留原文。运行时诊断与过程标题在 `src/i18n/systemMessages.ts` 的展示边界转换，不修改持久化数据或 SSE 协议。
 
 语言和主题变化不应重建工作区或订阅 SSE，也不应清空消息草稿、附件与提问回答。组件测试覆盖导航、键盘调整宽度、输入草稿和提问回答在语言切换时的保留；修改这些行为后执行上述检查。

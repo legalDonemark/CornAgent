@@ -1,31 +1,53 @@
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
-import { translate, type Locale, type Translator } from './i18n/catalog'
-export type { Locale } from './i18n/catalog'
+import 'dayjs/locale/fr'
+import { translate, type DisplayLocale, type Locale, type Translator } from './i18n/catalog'
+export type { DisplayLocale, Locale } from './i18n/catalog'
 
 interface I18nValue {
-  locale: Locale
+  /** 当前展示语言，法语只覆盖首页文案。 */
+  locale: DisplayLocale
+  /** 访客的原始语言，法语之外的界面与合成演示内容使用它。 */
+  baseLocale: Locale
+  visitFrench: boolean
   t: Translator
   text: (zh: string, en: string) => string
   toggleLocale: () => void
+  /** 首页语言切换；只保存在本次访问中。 */
+  setVisitFrench: (french: boolean) => void
 }
 
 const I18nContext = createContext<I18nValue | null>(null)
-const syncDayjsLocale = (locale: Locale) => dayjs.locale(locale === 'zh-CN' ? 'zh-cn' : 'en')
+const LOCALE_KEY = 'cornagent.locale'
+// 法语是本次访问的选择：保存在 sessionStorage，下次访问回到默认语言。
+const VISIT_LOCALE_KEY = 'cornagent.locale.visit'
+const syncDayjsLocale = (locale: DisplayLocale) =>
+  dayjs.locale(locale === 'zh-CN' ? 'zh-cn' : locale === 'fr' ? 'fr' : 'en')
 const fallbackI18n: I18nValue = {
   locale: 'zh-CN',
+  baseLocale: 'zh-CN',
+  visitFrench: false,
   t: (key, params) => translate('zh-CN', key, params),
   text: (zh) => zh,
   toggleLocale: () => undefined,
+  setVisitFrench: () => undefined,
 }
 
 function readLocalePreference(): Locale | null {
   try {
-    const saved = localStorage.getItem('cornagent.locale')
+    const saved = localStorage.getItem(LOCALE_KEY)
     return saved === 'en' || saved === 'zh-CN' ? saved : null
   } catch {
     return null
+  }
+}
+
+function readVisitFrench(): boolean {
+  try {
+    return sessionStorage.getItem(VISIT_LOCALE_KEY) === 'fr'
+  } catch {
+    return false
   }
 }
 
@@ -46,8 +68,10 @@ function subscribeSystemLocale(onChange: () => void) {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] = useState<Locale | null>(readLocalePreference)
+  const [visitFrench, setVisitFrenchState] = useState(readVisitFrench)
   const osLocale = useSyncExternalStore(subscribeSystemLocale, systemLocale, () => 'en' as const)
-  const locale = preference ?? osLocale
+  const baseLocale = preference ?? osLocale
+  const locale: DisplayLocale = visitFrench ? 'fr' : baseLocale
   useEffect(() => {
     syncDayjsLocale(locale)
     document.documentElement.lang = locale
@@ -55,19 +79,35 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (preference === null) return
     try {
-      localStorage.setItem('cornagent.locale', preference)
+      localStorage.setItem(LOCALE_KEY, preference)
     } catch {
       // Language switching still works when browser storage is unavailable.
     }
   }, [preference])
+  const setVisitFrench = useCallback((french: boolean) => {
+    setVisitFrenchState(french)
+    try {
+      // Never stored next to the long-lived preference: French lasts for this visit only.
+      if (french) sessionStorage.setItem(VISIT_LOCALE_KEY, 'fr')
+      else sessionStorage.removeItem(VISIT_LOCALE_KEY)
+    } catch {
+      // Language switching still works when browser storage is unavailable.
+    }
+  }, [])
   const value = useMemo<I18nValue>(
     () => ({
       locale,
+      baseLocale,
+      visitFrench,
       t: (key, params) => translate(locale, key, params),
       text: (zh, en) => (locale === 'zh-CN' ? zh : en),
-      toggleLocale: () => setPreference(locale === 'zh-CN' ? 'en' : 'zh-CN'),
+      toggleLocale: () => {
+        setVisitFrench(false)
+        setPreference(baseLocale === 'zh-CN' ? 'en' : 'zh-CN')
+      },
+      setVisitFrench,
     }),
-    [locale],
+    [baseLocale, locale, setVisitFrench, visitFrench],
   )
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

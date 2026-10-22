@@ -1,10 +1,10 @@
-import { translate, type Locale, type MessageKey } from '../i18n/catalog'
+import { translate, type DisplayLocale, type MessageKey } from '../i18n/catalog'
 
 export const DEFAULT_SITE_URL = 'https://cornagent.xiaotongyu.com'
 export const REPOSITORY_URL = 'https://github.com/XiaoTongYuCode/CornAgent'
 export const publicHome = (path: string) => path === '/' || path === '/chat'
 
-export function pageMetadata(path: string, locale: Locale, siteUrl: string) {
+export function pageMetadata(path: string, locale: DisplayLocale, siteUrl: string) {
   const home = publicHome(path)
   const pageKeys: Record<string, MessageKey> = {
     '/sidebar': 'sidebarExample', '/rendering': 'agentRendering', '/usage': 'usageTitle', '/profile': 'myProfile',

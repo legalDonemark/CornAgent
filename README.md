@@ -64,7 +64,7 @@ Building an agent product also requires sessions, streaming events, pausing, rec
 | On-demand tools | Discover tools and read skills as needed; loaded schemas survive checkpoints and follow the active branch |
 | Operation evidence | Committed field changes, drafts, partial failures and uncertain results derived from execution receipts |
 | Embedded integration | A standalone chat page and resizable sidebar share the same provider, sessions, and message components |
-| Interface preferences | English and Simplified Chinese, light and dark themes, collapsible navigation, and narrow-screen layouts |
+| Interface preferences | English and Simplified Chinese, French on the home screen, light and dark themes, collapsible navigation, and narrow-screen layouts |
 
 ## Quick Start
 

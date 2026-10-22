@@ -11,10 +11,11 @@ interface Props {
   onCloseMobile(): void
 }
 export function SidebarHeader({ preview, onCollapse, onExpand, onCloseMobile }: Props) {
-  const { locale, t, toggleLocale } = useI18n()
+  const { baseLocale, locale, t, toggleLocale } = useI18n()
   const { theme, toggleTheme } = useAppTheme()
   const themeLabel = t(theme === 'light' ? 'darkTheme' : 'lightTheme')
-  const languageLabel = locale === 'zh-CN' ? 'Switch to English' : '切换至中文'
+  // The label names the language it switches to, so it stays in that language.
+  const languageLabel = baseLocale === 'zh-CN' ? 'Switch to English' : '切换至中文'
   const collapseLabel = t(preview ? 'pinSidebar' : 'collapseSidebar')
   return (
     <div className="sidebar-header" data-preview={preview || undefined}>

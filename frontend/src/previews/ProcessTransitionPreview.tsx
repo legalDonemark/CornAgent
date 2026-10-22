@@ -13,14 +13,14 @@ interface Playback { steps: PreviewStep[]; elapsed: number; resumedAt: number | 
 const iconProps = { size: 16, strokeWidth: 1.75, 'aria-hidden': true } as const
 
 export function ProcessTransitionPreview() {
-  const { locale, t, toggleLocale } = useI18n()
+  const { baseLocale, t, toggleLocale } = useI18n()
   const { theme, toggleTheme } = useAppTheme()
   const [preview, setPreview] = useState<{ parts: typeof initialPreviewParts; playback: Playback | null }>({ parts: initialPreviewParts, playback: null })
   const [resetKey, setResetKey] = useState(0)
   const { playback, parts } = preview
   const isPlaying = playback !== null && playback.resumedAt !== null
   const isPaused = playback !== null && playback.resumedAt === null
-  const contentParts = useMemo(() => projectDesktopContentParts(parts[locale]), [parts, locale])
+  const contentParts = useMemo(() => projectDesktopContentParts(parts[baseLocale]), [parts, baseLocale])
 
   useEffect(() => {
     if (!playback || playback.resumedAt === null) return

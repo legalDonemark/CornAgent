@@ -107,7 +107,7 @@ function LoginScreen({
   failed: boolean
   onLogin: () => Promise<void>
 }) {
-  const { t, toggleLocale, locale } = useI18n()
+  const { t, toggleLocale, baseLocale } = useI18n()
   const path = usePathname()
   const { theme, setPreference } = useThemePreference()
   const [method, setMethod] = useState<'code' | 'password'>('code')
@@ -316,7 +316,7 @@ function LoginScreen({
         </section>
       </div>
       <footer className="auth-footer">
-        {publicHome(path) && <ProjectIntroduction locale={locale} showLinks={false} brief />}
+        {publicHome(path) && <ProjectIntroduction locale={baseLocale} showLinks={false} brief />}
         <nav aria-label={t('authFooter')}>
           <span>© {new Date().getFullYear()} CornAgent</span>
           <a href="https://github.com/XiaoTongYuCode/CornAgent" target="_blank" rel="noreferrer">GitHub</a>
