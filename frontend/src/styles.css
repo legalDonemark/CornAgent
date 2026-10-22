@@ -6,6 +6,7 @@
 @import './styles/components/agent-chat-content.css';
 @import './styles/components/agent-chat-collapsible.css';
 @import './styles/components/agent-prompt-panel.css';
+@import './styles/components/language-switcher.css';
 @import './styles/components/sidebar.css';
 @import './styles/components/sidebar-preview.css';
 @import './styles/components/article-skeleton.css';

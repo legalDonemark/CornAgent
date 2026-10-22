@@ -16,7 +16,7 @@ export function DocumentMetadata() {
     setMeta('meta[name="robots"]', metadata.robots)
     setMeta('meta[property="og:title"]', metadata.title)
     setMeta('meta[property="og:description"]', metadata.description)
-    setMeta('meta[property="og:locale"]', locale === 'en' ? 'en_US' : 'zh_CN')
+    setMeta('meta[property="og:locale"]', locale === 'en' ? 'en_US' : locale === 'fr' ? 'fr_FR' : 'zh_CN')
     setMeta('meta[name="twitter:title"]', metadata.title)
     setMeta('meta[name="twitter:description"]', metadata.description)
     document.head.querySelectorAll('link[rel="canonical"], meta[property="og:url"], #project-structured-data').forEach((node) => node.remove())

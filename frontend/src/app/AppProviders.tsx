@@ -2,6 +2,7 @@ import LobeConfigProvider from '@lobehub/ui/es/ConfigProvider/index'
 import LobeThemeProvider from '@lobehub/ui/es/ThemeProvider/index'
 import { App as AntdApp, ConfigProvider as AntdConfigProvider, theme as antdTheme, type ThemeConfig } from 'antd'
 import enUS from 'antd/locale/en_US'
+import frFR from 'antd/locale/fr_FR'
 import zhCN from 'antd/locale/zh_CN'
 import { motion } from 'motion/react'
 import { useMemo, type ReactNode } from 'react'
@@ -68,7 +69,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <AppThemeContext.Provider value={context}>
-      <AntdConfigProvider locale={locale === 'zh-CN' ? zhCN : enUS} theme={themeConfig}>
+      <AntdConfigProvider locale={locale === 'zh-CN' ? zhCN : locale === 'fr' ? frFR : enUS} theme={themeConfig}>
         <LobeConfigProvider locale={locale} motion={motion}>
           <LobeThemeProvider
             appearance={theme}

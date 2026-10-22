@@ -1,4 +1,9 @@
+import { frenchHomeScreen } from './frenchHomeScreen'
+
+/** 拥有完整界面词典的语言。 */
 export type Locale = 'zh-CN' | 'en'
+/** 界面可以显示的语言，包含只覆盖首页的法语。 */
+export type DisplayLocale = Locale | 'fr'
 
 export const messages = {
   operationEvidence: ['本轮操作回执', 'Operation receipts'],
@@ -316,14 +321,24 @@ export const messages = {
   transitionPreviewReset: ['重置演示', 'Reset demo'],
   transitionPreviewTheme: ['切换主题', 'Toggle theme'],
   transitionPreviewLanguage: ['切换语言', 'Toggle language'],
+
+  greetingMorning: ['早上好', 'Good morning'],
+  greetingAfternoon: ['下午好', 'Good afternoon'],
+  greetingEvening: ['晚上好', 'Good evening'],
+  homeLanguage: ['首页语言', 'Home screen language'],
+  homeLanguageFrench: ['以法语显示首页', 'Show the home screen in French'],
+  homeLanguageOriginal: ['恢复原来的语言', 'Back to the original language'],
 } as const satisfies Record<string, readonly [string, string]>
 
 export type MessageKey = keyof typeof messages
 export type MessageParams = Readonly<Record<string, string | number>>
 export type Translator = (key: MessageKey, params?: MessageParams) => string
 
-export function translate(locale: Locale, key: MessageKey, params: MessageParams = {}): string {
-  return messages[key][locale === 'zh-CN' ? 0 : 1].replace(/\{(\w+)\}/g, (token, name: string) =>
+/** 法语只在首页词典覆盖的文案上生效，其余键回退到英文。 */
+export function translate(locale: DisplayLocale, key: MessageKey, params: MessageParams = {}): string {
+  const french: string | undefined = locale === 'fr' ? (frenchHomeScreen as Partial<Record<MessageKey, string>>)[key] : undefined
+  const message = french ?? messages[key][locale === 'zh-CN' ? 0 : 1]
+  return message.replace(/\{(\w+)\}/g, (token, name: string) =>
     Object.hasOwn(params, name) ? String(params[name]) : token,
   )
 }

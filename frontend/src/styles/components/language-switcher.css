@@ -1,0 +1,7 @@
+.home-language-switcher { display: inline-flex; flex: 0 0 auto; align-items: stretch; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--control); }
+.home-language-option { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; padding: 0 8px; border: 0; border-radius: 0; color: var(--muted); background: transparent; font-size: 12px; font-weight: 500; line-height: 1; cursor: pointer; }
+.home-language-option + .home-language-option { border-left: 1px solid var(--border-strong); }
+.home-language-option:hover { color: var(--text); background: var(--control-hover); }
+.home-language-option[aria-pressed="true"] { color: var(--text-on-accent); background: var(--primary); }
+.home-language-option[aria-pressed="true"]:hover { background: var(--primary-hover); }
+.home-language-option:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }

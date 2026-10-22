@@ -1,5 +1,5 @@
 import React from 'react'
-import { translate, type Locale } from '../i18n/catalog'
+import { translate, type DisplayLocale } from '../i18n/catalog'
 import { REPOSITORY_URL } from './seo'
 import { ProjectContactLinks } from './ProjectContactLinks'
 
@@ -10,7 +10,7 @@ export function ProjectIntroduction({
   compact = false,
   brief = false,
 }: {
-  locale: Locale
+  locale: DisplayLocale
   showLinks?: boolean
   compact?: boolean
   brief?: boolean

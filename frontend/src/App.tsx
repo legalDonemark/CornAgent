@@ -6,6 +6,7 @@ import { AgentSidebar } from './agent/AgentSidebar'
 import { CornAgentProvider } from './agent/CornAgentProvider'
 import { useAgent } from './agent/AgentContext'
 import { navigate, useMobileLayout, usePathname } from './app/navigation'
+import { HomeLanguageSwitcher } from './app/HomeLanguageSwitcher'
 import { ProjectIntroduction } from './app/ProjectIntroduction'
 import { DocumentMetadata } from './app/DocumentMetadata'
 import { ProfilePage } from './app/ProfilePage'
@@ -24,7 +25,7 @@ function initialCollapsed() {
     return false
   }
 }
-function Application({ path, sessionId, accountControls }: { path: string; sessionId: string | null; accountControls?: ReactNode }) {
+export function Application({ path, sessionId, accountControls }: { path: string; sessionId: string | null; accountControls?: ReactNode }) {
   const { t, locale } = useI18n()
   const mobile = useMobileLayout()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialCollapsed)
@@ -142,6 +143,7 @@ function Application({ path, sessionId, accountControls }: { path: string; sessi
         <Activity mode={chat ? 'visible' : 'hidden'}>
           <AgentChatPage
             emptyStateFooter={sessionId === null ? <ProjectIntroduction locale={locale} compact /> : undefined}
+            headerActions={chat && sessionId === null ? <HomeLanguageSwitcher /> : undefined}
             sessionId={chat ? sessionId : workspace.session?.id ?? null}
             workspace={workspace}
             onSessionChange={changeSession}

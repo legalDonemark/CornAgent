@@ -5,7 +5,8 @@ import { ListEnd } from 'lucide-react'
 import { localizeSystemMessage } from '../i18n/systemMessages'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createClientId } from '../client-id'
-import { useI18n, type Locale } from '../i18n'
+import { useI18n, type DisplayLocale } from '../i18n'
+import { translate } from '../i18n/catalog'
 import { AgentThinkingOrb32 } from './AgentThinkingOrb32'
 import { UserQuestionPart } from './chat/UserQuestionPart'
 import { PromptPanel } from './chat/PromptPanel'
@@ -167,19 +168,13 @@ export function AgentConversation({ workspace, userName, focusPrompt = false, on
   </section>
 }
 
-function localizedGreeting(locale: Locale, userName?: string): string {
+function localizedGreeting(locale: DisplayLocale, userName?: string): string {
   const hour = new Date().getHours()
-  const greeting = locale === 'zh-CN'
-    ? hour >= 6 && hour < 12
-      ? '早上好'
-      : hour >= 12 && hour < 18
-        ? '下午好'
-        : '晚上好'
-    : hour >= 6 && hour < 12
-      ? 'Good morning'
-      : hour >= 12 && hour < 18
-        ? 'Good afternoon'
-        : 'Good evening'
+  const greeting = translate(locale, hour >= 6 && hour < 12
+    ? 'greetingMorning'
+    : hour >= 12 && hour < 18
+      ? 'greetingAfternoon'
+      : 'greetingEvening')
   const name = userName?.trim()
   if (locale === 'zh-CN') return name ? `${greeting}，${name}` : greeting
   return name ? `${greeting}, ${name}` : greeting

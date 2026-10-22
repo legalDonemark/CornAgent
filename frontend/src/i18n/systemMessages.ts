@@ -1,4 +1,4 @@
-import { messages, type Locale } from './catalog'
+import { messages, type DisplayLocale, type Locale } from './catalog'
 
 // Translate application-owned labels and diagnostics at the display boundary.
 // Conversation text, questions, filenames and custom tool output stay unchanged.
@@ -35,10 +35,12 @@ const indexes = {
   en: new Map(systemMessages.map(([zh, en]) => [zh, en])),
 }
 
-export function localizeSystemMessage(value: string, locale: Locale): string {
-  const exact = indexes[locale].get(value)
+export function localizeSystemMessage(value: string, locale: DisplayLocale): string {
+  // Runtime diagnostics keep the base dictionary; French only covers the home screen's own copy.
+  const target: Locale = locale === 'zh-CN' ? 'zh-CN' : 'en'
+  const exact = indexes[target].get(value)
   if (exact) return exact
-  if (locale !== 'en') return value
+  if (target !== 'en') return value
   return value
     .replace(/^最多可添加 (\d+) 个文件。$/, 'You can attach up to $1 files.')
     .replace(/^最多可添加 (\d+) 个 PDF。$/, 'You can attach up to $1 PDFs.')
