@@ -28,6 +28,14 @@ vi.mock('@lobehub/ui/chat', () => ({
 vi.mock('@lobehub/ui/es/Markdown/index', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }))
+// A row that has just opened fades in over a quarter of a second, and for that quarter of a second
+// its content is still at opacity 0. This file asks which row changed, not how it fades, so it
+// renders the reduced-motion branch the app already ships: the row is on screen the moment it is
+// in the tree, and no assertion below depends on how far an animation got.
+vi.mock('motion/react', async (importOriginal) => ({
+  ...await importOriginal<typeof import('motion/react')>(),
+  useReducedMotion: () => true,
+}))
 vi.mock('./chat/groupMessageTurns', async (importOriginal) => {
   const original =
     await importOriginal<typeof import('./chat/groupMessageTurns')>()
@@ -173,6 +181,18 @@ function runningSnapshot(workspace: AgentWorkspace): AgentSnapshot {
   }
 }
 
+/**
+ * What a reader of this conversation has in front of them: the list follows the latest answer, so
+ * the screen holds the current row and the turns just above it. A copy of the live list, trimmed
+ * to those turns, since a picture cannot be scrolled.
+ */
+function lastScreenful() {
+  const list = document.querySelector('.chat-message-list-shell')!.cloneNode(true) as Element
+  const exchanges = [...list.querySelectorAll('.chat-message-list__exchange')]
+  exchanges.slice(0, -3).forEach((exchange) => exchange.remove())
+  return list
+}
+
 // The whole scenario, twenty times in a row per event, so a race would have to come out the lucky
 // way twenty times over before CI could call this green.
 const STREAMING_ROUNDS = 20
@@ -224,7 +244,7 @@ for (const event of ['delta', 'reasoning_delta'] as const) {
             parts.some((part) => part.id === 'stream-part'),
           ),
       ).toBe(true)
-      if (round === 1) capturePicture(expect.getState().currentTestName ?? '')
+      if (round === 1) capturePicture(expect.getState().currentTestName ?? '', { root: lastScreenful() })
     })
   }
 }
