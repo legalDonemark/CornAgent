@@ -1,0 +1,15 @@
+{
+  "branch": "constat/session-1-63283fe5",
+  "screens": [
+    "the Home"
+  ],
+  "criteria": [
+    "A visitor can switch the home screen language to French and see the home screen text displayed in French.",
+    "The French version covers only the home screen; other pages remain untranslated for now.",
+    "All text, buttons, and labels visible on the home screen appear correctly in French with no leftover English words.",
+    "French special characters such as é, à, and ç display correctly without broken symbols.",
+    "A visitor can switch back from French to the original language and the home screen updates correctly.",
+    "The site remembers a visitor's choice of French only for their current visit, and resets to default on their next visit."
+  ],
+  "why": "DoneMark froze these onto the attempt: the acceptance criteria of the requirement it is for, and the screens those criteria name. The picture suite runs the checks whose names are these criteria and skips the rest; where it can match none of them it narrows by these screens instead, and says so. Honoured on this branch only."
+}
