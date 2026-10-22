@@ -60,7 +60,15 @@ function resolveAssetUrls(html: string): string {
   })
 }
 
-function pictureDocument(): string {
+/** The live screen: the given element, or the last mounted container still holding something. */
+function pictureBody(root?: Element): string {
+  if (root) return root.outerHTML
+  const mounted = [...document.body.children].filter((element) => element.innerHTML.trim().length > 0)
+  const shell = mounted.filter((element) => element.querySelector('.cornagent-shell'))
+  return (shell.at(-1) ?? mounted.at(-1))?.outerHTML ?? document.body.innerHTML
+}
+
+function pictureDocument(container?: Element): string {
   const root = document.documentElement
   const headStyles = [...document.head.querySelectorAll('style')]
     .map((style) => `<style>${style.textContent ?? ''}</style>`)
@@ -73,7 +81,7 @@ function pictureDocument(): string {
 <style>${inlineStyles(join(frontendDir, 'src', 'styles.css'))}</style>
 ${headStyles}
 </head>
-<body><div id="picture-root">${document.body.innerHTML}</div></body>
+<body><div id="picture-root">${pictureBody(container)}</div></body>
 </html>`)
 }
 
@@ -81,7 +89,10 @@ ${headStyles}
  * Save `.constat/pictures/<slug of the check name>.png`. Returns the path, or null when no
  * browser is installed: a missing picture must not turn a passing check red.
  */
-export function capturePicture(name: string, { width = 1280, height = 860 } = {}): string | null {
+export function capturePicture(
+  name: string,
+  { width = 1280, height = 860, root }: { width?: number; height?: number; root?: Element } = {},
+): string | null {
   const browser = browsers.find((path) => existsSync(path))
   const target = join(picturesDir, `${pictureSlug(name)}.png`)
   if (!browser) {
@@ -91,7 +102,7 @@ export function capturePicture(name: string, { width = 1280, height = 860 } = {}
   mkdirSync(picturesDir, { recursive: true })
   const workDir = mkdtempSync(join(tmpdir(), 'constat-picture-'))
   const page = join(workDir, 'screen.html')
-  writeFileSync(page, pictureDocument(), 'utf8')
+  writeFileSync(page, pictureDocument(root), 'utf8')
   execFileSync(
     browser,
     [
