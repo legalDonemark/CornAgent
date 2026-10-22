@@ -1,0 +1,11 @@
+{
+  "branch": "constat/session-3-cbce6f29",
+  "screens": [],
+  "criteria": [
+    "oth versions of the test pass 20 times in a row inside one CI run: \"updates only the current row for five delta events with 100 historical messages\" and the reasoning_delta one.",
+    "The test still checks what it was written for. After each streamed event: the new text appears; the 100 earlier messages are not redrawn; the first earlier message is the same element before and after.",
+    "The test waits for what it checks, never for a fixed time. No sleeps are added, and no timeout is simply raised to hide the problem.",
+    "Every other frontend and server test still passes."
+  ],
+  "why": "DoneMark froze these onto the attempt: the acceptance criteria of the requirement it is for, and the screens those criteria name. The picture suite runs the checks whose names are these criteria and skips the rest; where it can match none of them it narrows by these screens instead, and says so. Honoured on this branch only."
+}
