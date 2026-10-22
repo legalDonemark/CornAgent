@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,7 @@ const harnessDir = dirname(fileURLToPath(import.meta.url))
 const frontendDir = resolve(harnessDir, '..', '..')
 const repoDir = resolve(frontendDir, '..')
 const picturesDir = join(repoDir, '.constat', 'pictures')
+const frontendPicturesDir = join(frontendDir, '.constat', 'pictures')
 const browsers = [
   process.env.CONSTAT_BROWSER,
   '/usr/bin/google-chrome',
@@ -68,7 +69,14 @@ function pictureBody(root?: Element): string {
   return (shell.at(-1) ?? mounted.at(-1))?.outerHTML ?? document.body.innerHTML
 }
 
-function pictureDocument(container?: Element): string {
+/** A screen a person reached by scrolling shows its end, not its start. */
+const SCROLL_TO_END = `<script>
+for (const element of document.querySelectorAll('*')) {
+  if (element.scrollHeight > element.clientHeight) element.scrollTop = element.scrollHeight
+}
+</script>`
+
+function pictureDocument(container?: Element, scrollToEnd = false): string {
   const root = document.documentElement
   const headStyles = [...document.head.querySelectorAll('style')]
     .map((style) => `<style>${style.textContent ?? ''}</style>`)
@@ -81,7 +89,7 @@ function pictureDocument(container?: Element): string {
 <style>${inlineStyles(join(frontendDir, 'src', 'styles.css'))}</style>
 ${headStyles}
 </head>
-<body><div id="picture-root">${pictureBody(container)}</div></body>
+<body><div id="picture-root">${pictureBody(container)}</div>${scrollToEnd ? SCROLL_TO_END : ''}</body>
 </html>`)
 }
 
@@ -91,10 +99,16 @@ ${headStyles}
  */
 export function capturePicture(
   name: string,
-  { width = 1280, height = 860, root }: { width?: number; height?: number; root?: Element } = {},
+  { width = 1280, height = 860, root, scrollToEnd = false }: {
+    width?: number
+    height?: number
+    root?: Element
+    scrollToEnd?: boolean
+  } = {},
 ): string | null {
   const browser = browsers.find((path) => existsSync(path))
-  const target = join(picturesDir, `${pictureSlug(name)}.png`)
+  const file = `${pictureSlug(name)}.png`
+  const target = join(picturesDir, file)
   if (!browser) {
     console.warn(`No browser found for the picture of "${name}"; skipped ${target}.`)
     return null
@@ -102,7 +116,7 @@ export function capturePicture(
   mkdirSync(picturesDir, { recursive: true })
   const workDir = mkdtempSync(join(tmpdir(), 'constat-picture-'))
   const page = join(workDir, 'screen.html')
-  writeFileSync(page, pictureDocument(root), 'utf8')
+  writeFileSync(page, pictureDocument(root, scrollToEnd), 'utf8')
   execFileSync(
     browser,
     [
@@ -119,5 +133,11 @@ export function capturePicture(
     ],
     { stdio: 'ignore', timeout: 120000 },
   )
+  // The check report is written from frontend/, and it names the picture of a check by finding it
+  // next to itself; the copy there is what reaches CI's artifact.
+  if (existsSync(target)) {
+    mkdirSync(frontendPicturesDir, { recursive: true })
+    copyFileSync(target, join(frontendPicturesDir, file))
+  }
   return target
 }

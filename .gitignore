@@ -13,3 +13,6 @@
 **/.coverage
 .DS_Store
 .vercel/
+# The copy of a check's picture the check report reads from frontend/; the picture itself lives in
+# .constat/pictures/ at the root.
+frontend/.constat/
