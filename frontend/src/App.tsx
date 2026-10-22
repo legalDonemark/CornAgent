@@ -24,7 +24,7 @@ function initialCollapsed() {
     return false
   }
 }
-function Application({ path, sessionId, accountControls }: { path: string; sessionId: string | null; accountControls?: ReactNode }) {
+export function Application({ path, sessionId, accountControls }: { path: string; sessionId: string | null; accountControls?: ReactNode }) {
   const { t, locale } = useI18n()
   const mobile = useMobileLayout()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(initialCollapsed)
