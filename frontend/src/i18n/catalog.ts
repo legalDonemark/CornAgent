@@ -316,11 +316,69 @@ export const messages = {
   transitionPreviewReset: ['重置演示', 'Reset demo'],
   transitionPreviewTheme: ['切换主题', 'Toggle theme'],
   transitionPreviewLanguage: ['切换语言', 'Toggle language'],
+
+  languageSwitcher: ['语言', 'Language'],
 } as const satisfies Record<string, readonly [string, string]>
 
 export type MessageKey = keyof typeof messages
 export type MessageParams = Readonly<Record<string, string | number>>
 export type Translator = (key: MessageKey, params?: MessageParams) => string
+
+/**
+ * French, for the home screen only: the navigation, the conversation top bar, the new-conversation
+ * composer and the project introduction a visitor reads at `/chat`. Every other key keeps falling
+ * back to English, so the rest of the application stays untranslated for now.
+ */
+export const frenchHomeScreen = {
+  navigation: 'Navigation principale',
+  home: 'Accueil',
+  chats: 'Conversations',
+  chatActions: 'Gérer « {title} »',
+  noChats: 'Aucune conversation',
+  newChat: 'Nouvelle conversation',
+  loading: 'Chargement…',
+  expandSidebar: 'Déplier la navigation',
+  collapseSidebar: 'Replier le panneau latéral',
+  pinSidebar: 'Garder le panneau latéral ouvert',
+  resizeSidebar: 'Ajuster la largeur du panneau latéral',
+  openNavigation: 'Ouvrir la navigation',
+  closeNavigation: 'Fermer la navigation',
+  darkTheme: 'Passer au thème sombre',
+  lightTheme: 'Passer au thème clair',
+  sidebarExample: 'Exemple de panneau latéral',
+  agentRendering: 'Rendu de l’agent',
+  usageTitle: 'Statistiques du site',
+  myProfile: 'Mon profil',
+  creatorCelebration: 'Lancer les confettis',
+  openingChat: 'Ouverture de la conversation…',
+  conversationHistory: 'Historique des conversations',
+  searchHistory: 'Rechercher dans l’historique',
+  searchHistoryPlaceholder: 'Rechercher dans l’historique…',
+  noMatchingChats: 'Aucune conversation correspondante',
+  loadMoreChats: 'Charger plus de conversations',
+  conversation: 'Conversation CornAgent',
+  unavailable: 'Agent indisponible',
+  unavailableHelp: 'Vérifiez les identifiants du modèle et la connexion Redis du serveur, puis rechargez la page.',
+  modelNotConfigured: 'Aucune clé API de modèle n’est configurée. Configurez la clé côté serveur, puis redémarrez le service.',
+  eventStreamNotConfigured: 'Aucun flux d’événements n’est configuré. Configurez Redis, puis redémarrez le service.',
+  askAnything: 'Poser une question…',
+  promptInput: 'Message à l’agent',
+  inputOptions: 'Options du message',
+  defaultModel: 'Modèle par défaut',
+  configuredModel: 'Utilise le modèle configuré par le serveur',
+  chooseFiles: 'Choisir des fichiers',
+  addFiles: 'Ajouter des fichiers',
+  sendMessage: 'Envoyer le message',
+  stopGeneration: 'Arrêter la génération',
+  projectTitle: 'CornAgent — agent IA open source et full-stack',
+  projectDescription: 'Un agent IA intégrable, conçu avec React et FastAPI. Hébergez-le vous-même, avec le streaming, la pause et la reprise, un état durable et des sous-tâches parallèles.',
+  projectShortDescription: 'Conçu avec React et FastAPI. Intégrez-le à votre application.',
+  projectLinks: 'Ressources du projet',
+  projectQuickStart: 'Démarrage rapide',
+  projectIntegration: 'Intégrer à votre application',
+  projectListingBadge: 'Badge CornAgent',
+  languageSwitcher: 'Langue',
+} as const satisfies Partial<Record<MessageKey, string>>
 
 export function translate(locale: Locale, key: MessageKey, params: MessageParams = {}): string {
   return messages[key][locale === 'zh-CN' ? 0 : 1].replace(/\{(\w+)\}/g, (token, name: string) =>
