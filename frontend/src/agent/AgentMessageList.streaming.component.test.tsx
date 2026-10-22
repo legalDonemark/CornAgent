@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event'
 import { I18nProvider, useI18n } from '../i18n'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { capturePicture } from '../../tests/harness/screenshot'
 import { AgentMessageList } from './AgentMessageList'
 import { groupMessageTurns } from './chat/groupMessageTurns'
 import { getVisibleAssistantMarkdown } from './chat/projectAgentMessageSections'
@@ -67,6 +68,14 @@ beforeEach(() => {
 })
 
 const NOW = '2026-09-18T00:00:00Z'
+
+// One picture of the streamed row per check, taken on the first repetition that reaches the end.
+const pictured = new Set<string>()
+function picture(name: string, root: Element | null) {
+  if (!root || pictured.has(name)) return
+  pictured.add(name)
+  capturePicture(name, { root, scrollToEnd: true })
+}
 
 function message(index: number): AgentMessage {
   return {
@@ -145,8 +154,13 @@ function runningSnapshot(workspace: AgentWorkspace): AgentSnapshot {
   }
 }
 
+// Run twenty times in a row inside one run: a list this large is where chance timing shows up,
+// so one green pass proves nothing — the check only holds if every repetition holds.
+const STREAMING_REPETITIONS = 20
+
 it.each(['delta', 'reasoning_delta'] as const)(
   'updates only the current row for five %s events with 100 historical messages',
+  { repeats: STREAMING_REPETITIONS - 1 },
   async (event) => {
     let workspace = workspaceWithHistory(100)
     let snapshot: AgentSnapshot | null = runningSnapshot(workspace)
@@ -186,6 +200,10 @@ it.each(['delta', 'reasoning_delta'] as const)(
           parts.some((part) => part.id === 'stream-part'),
         ),
     ).toBe(true)
+    picture(
+      `updates only the current row for five ${event} events with 100 historical messages`,
+      document.querySelector('.chat-message-list-shell'),
+    )
   },
 )
 
