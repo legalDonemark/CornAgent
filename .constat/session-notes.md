@@ -36,3 +36,42 @@
 ### 检查命名
 检查名与验收标准逐字相同，但不带句末句号：第一次（只含检查的）推送在 CI 记录的就是这组名字，
 红→绿必须在同一个名字上对得起来。中间一次改名的提交没有被 CI 跑到，已改回。
+
+# Session 4 — notes
+
+## 需求 1：流式列表检查不再偶发失败（8f903a38-afa0-433d-b42e-b38cafc15d10）
+
+已完成。`frontend/src/agent/AgentMessageList.streaming.component.test.tsx` 的
+「updates only the current row for five {delta,reasoning_delta} events with 100 historical messages」
+两项检查各连跑 20 轮，共 40 项，全部通过。
+
+### 偶发的真正原因（下一个需求最该知道的）
+`reasoning_delta` 的推理内容渲染在可折叠面板里，面板的展开状态由
+`useInterleavedReasoningExpansion` / `useToolCallExpansion` / `useStandaloneReasoningExpansion`
+推迟到 `requestAnimationFrame`，展开后再由 `AnimatedMessageBody` 以 `initial='enter'`
+（`opacity: 0`）淡入 0.25s。`toBeVisible()` 在 `opacity` 离开 0 之前为假，实测这条
+`waitFor` 要等 **400–670ms**，而默认超时只有 1000ms。余量不足两倍，CI 一拥挤就越线。
+**凡是对 `MarkdownMessageContent` 子树里的内容写 `toBeVisible()` 的组件测试，都有同一个坑。**
+
+### 这个文件里新增的两件工具（可照搬）
+- **自管动画帧**：`beforeEach` 用 `vi.stubGlobal` 把 `requestAnimationFrame` 换成一个队列，
+  `settleAnimationFrames()` 在 `act()` 里把队列（以及队列里又排的帧）跑干净。
+  关键细节：`motion` 在模块加载时就捕获了真实的 `requestAnimationFrame`
+  （`motion-dom` 的 `createRenderBatcher(requestAnimationFrame, true)`），
+  所以这个 stub 只影响应用代码排的帧，不会把 motion 的帧循环拖进死循环。
+- **按 reduced-motion 渲染**：`vi.mock('motion/react', … useReducedMotion: () => true)`，
+  与 `src/components/TextSwap.component.test.tsx` 既有写法一致。
+  `AnimatedMessageBody` 于是走 `initial={false}`，内容进入 DOM 即可见。
+
+### 断言「不靠运气」
+每次等待都数 `waitFor` 读屏的次数并断言 `reads === 1`。这条让红/绿是确定的：
+不加 reduced-motion 时 `reasoning_delta` 20 轮红 18 轮（另 2 轮侥幸通过，正是偶发的样子），
+加上之后 40/40 绿。改动这个文件时请保留这条断言，它是唯一能在本机就抓住回归的东西。
+
+### 半真的地方
+- 截图里的中文是方块：本机与 CI runner 都没有中文字体（`fc-list :lang=zh` 为空），
+  `tests/harness/screenshot.ts` 只内联了 `@fontsource/inter`。与被测界面无关。
+- 截图取的是列表尾部三个 exchange 的克隆（`lastScreenful()`），因为静态图没法滚动，
+  而真实应用会跟随最新回答。第一条历史消息因此不在图里，它由断言覆盖。
+- 这个文件的另外 4 项检查也一并受 rAF stub 与 reduced-motion 影响，均已通过。
+- 文件从 6 项检查涨到 44 项，运行时间约 14s（原约 2s）。这是验收标准要求的 20 轮重复的代价。
