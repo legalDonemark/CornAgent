@@ -7,5 +7,5 @@
     "The test waits for what it checks, never for a fixed time. No sleeps are added, and no timeout is simply raised to hide the problem.",
     "Every other frontend and server test still passes."
   ],
-  "why": "DoneMark froze these onto the attempt: the acceptance criteria of the requirement it is for, and the screens those criteria name. The picture suite runs the checks whose names are these criteria and skips the rest; where it can match none of them it narrows by these screens instead, and says so. Honoured on this branch only."
+  "why": "DoneMark froze these onto session 4's proof: every screen and criterion of the requirements it built. Honoured on this branch only."
 }
