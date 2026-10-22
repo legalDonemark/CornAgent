@@ -1,7 +1,8 @@
 import userEvent from '@testing-library/user-event'
 import { I18nProvider, useI18n } from '../i18n'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { capturePicture } from '../../tests/harness/screenshot'
 import { AgentMessageList } from './AgentMessageList'
 import { groupMessageTurns } from './chat/groupMessageTurns'
 import { getVisibleAssistantMarkdown } from './chat/projectAgentMessageSections'
@@ -61,10 +62,37 @@ beforeAll(() => {
     value: () => [],
   })
 })
+// The rows defer their expansion state to animation frames. Holding those frames here and running
+// them on demand keeps every assertion below tied to work the rows actually queued, so nothing in
+// this file is decided by how fast the machine happens to reach the next browser frame.
+const animationFrames = new Map<number, FrameRequestCallback>()
+let lastAnimationFrameId = 0
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  animationFrames.clear()
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    lastAnimationFrameId += 1
+    animationFrames.set(lastAnimationFrameId, callback)
+    return lastAnimationFrameId
+  })
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    animationFrames.delete(id)
+  })
 })
+
+/** Run the frames the rows queued, and the frames those frames queue, until none are left. */
+async function settleAnimationFrames() {
+  for (let pass = 0; animationFrames.size > 0; pass += 1) {
+    if (pass >= 50) throw new Error('rows kept queueing animation frames without settling')
+    const pending = [...animationFrames.values()]
+    animationFrames.clear()
+    await act(async () => {
+      pending.forEach((callback) => callback(0))
+    })
+  }
+}
 
 const NOW = '2026-09-18T00:00:00Z'
 
@@ -145,49 +173,61 @@ function runningSnapshot(workspace: AgentWorkspace): AgentSnapshot {
   }
 }
 
-it.each(['delta', 'reasoning_delta'] as const)(
-  'updates only the current row for five %s events with 100 historical messages',
-  async (event) => {
-    let workspace = workspaceWithHistory(100)
-    let snapshot: AgentSnapshot | null = runningSnapshot(workspace)
-    workspace = { ...workspace, snapshot }
-    const view = render(<AgentMessageList workspace={workspace} />)
-    const historicalNode = screen.getByText('历史消息 0')
-    expect(getVisibleAssistantMarkdown).toHaveBeenCalledTimes(101)
-    expect(groupMessageTurns).toHaveBeenCalledOnce()
-    vi.mocked(getVisibleAssistantMarkdown).mockClear()
-    vi.mocked(groupMessageTurns).mockClear()
+// The whole scenario, twenty times in a row per event, so a race would have to come out the lucky
+// way twenty times over before CI could call this green.
+const STREAMING_ROUNDS = 20
 
-    for (let index = 1; index <= 5; index += 1) {
-      applyEvent(
-        {
-          id: String(index),
-          event,
-          data: { content: '新', part_id: 'stream-part' },
-        },
-        (update) => {
-          snapshot = typeof update === 'function' ? update(snapshot) : update
-        },
-      )
+for (const event of ['delta', 'reasoning_delta'] as const) {
+  for (let round = 1; round <= STREAMING_ROUNDS; round += 1) {
+    it(`updates only the current row for five ${event} events with 100 historical messages`, async () => {
+      let workspace = workspaceWithHistory(100)
+      let snapshot: AgentSnapshot | null = runningSnapshot(workspace)
       workspace = { ...workspace, snapshot }
-      view.rerender(<AgentMessageList workspace={workspace} />)
-      await waitFor(() =>
-        expect(screen.getByText('新'.repeat(index))).toBeVisible(),
-      )
-      expect(getVisibleAssistantMarkdown).toHaveBeenCalledTimes(index)
-    }
+      const view = render(<AgentMessageList workspace={workspace} />)
+      await settleAnimationFrames()
+      const historicalNode = screen.getByText('历史消息 0')
+      expect(getVisibleAssistantMarkdown).toHaveBeenCalledTimes(101)
+      expect(groupMessageTurns).toHaveBeenCalledOnce()
+      vi.mocked(getVisibleAssistantMarkdown).mockClear()
+      vi.mocked(groupMessageTurns).mockClear()
 
-    expect(groupMessageTurns).not.toHaveBeenCalled()
-    expect(screen.getByText('历史消息 0')).toBe(historicalNode)
-    expect(
-      vi
-        .mocked(getVisibleAssistantMarkdown)
-        .mock.calls.every(([parts]) =>
-          parts.some((part) => part.id === 'stream-part'),
-        ),
-    ).toBe(true)
-  },
-)
+      for (let index = 1; index <= 5; index += 1) {
+        applyEvent(
+          {
+            id: String(index),
+            event,
+            data: { content: '新', part_id: 'stream-part' },
+          },
+          (update) => {
+            snapshot = typeof update === 'function' ? update(snapshot) : update
+          },
+        )
+        workspace = { ...workspace, snapshot }
+        view.rerender(<AgentMessageList workspace={workspace} />)
+        await settleAnimationFrames()
+        let reads = 0
+        await waitFor(() => {
+          reads += 1
+          expect(screen.getByText('新'.repeat(index))).toBeVisible()
+        })
+        // The row is already on screen on the first read, so this wait never races the clock.
+        expect(reads).toBe(1)
+        expect(getVisibleAssistantMarkdown).toHaveBeenCalledTimes(index)
+      }
+
+      expect(groupMessageTurns).not.toHaveBeenCalled()
+      expect(screen.getByText('历史消息 0')).toBe(historicalNode)
+      expect(
+        vi
+          .mocked(getVisibleAssistantMarkdown)
+          .mock.calls.every(([parts]) =>
+            parts.some((part) => part.id === 'stream-part'),
+          ),
+      ).toBe(true)
+      if (round === 1) capturePicture(expect.getState().currentTestName ?? '')
+    })
+  }
+}
 
 it('refreshes historical edit and regenerate controls when a run or busy state changes', () => {
   let workspace = workspaceWithHistory(2)
