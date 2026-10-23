@@ -273,21 +273,41 @@ def test_reconciliation_only_cancels_claims_observed_before_live_query(case):
     asyncio.run(scenario())
 
 
+GUARD_ROUNDS = 20  # The guard must hold on every run, not on the lucky ones.
+
+
 def test_guard_discards_uncollected_final_candidate(settings):
-    stream = FakeAgentEventStream()
-    with TestClient(
-        app(settings, RootModel(premature=True), ChildModel(delay=0.05), stream)
-    ) as client:
-        created = start(client)
-        detail = wait_run(client, created["session"]["id"])
-        assert detail["messages"][-1]["markdown"] == "模拟资料汇总完成。"
-        assert "PREMATURE" not in json.dumps(detail)
-        assert "PREMATURE" not in json.dumps(stream.events)
-        assert any(
-            event["event"] == "session"
-            and event["data"].get("run", {}).get("status") == "waiting_for_subagents"
-            for event in stream.events
-        )
+    for attempt in range(GUARD_ROUNDS):
+        stream = FakeAgentEventStream()
+        with TestClient(
+            app(settings, RootModel(premature=True), ChildModel(delay=0.05), stream)
+        ) as client:
+            created = start(client)
+            session_id = created["session"]["id"]
+            parked = wait_run(client, session_id, "waiting_for_subagents")
+            assert "PREMATURE" not in json.dumps(parked), attempt
+            with client.app.state.database.session_factory() as db:
+                rows = list(
+                    db.scalars(
+                        select(AgentSubagentTask).where(
+                            AgentSubagentTask.root_run_id == created["run"]["id"]
+                        )
+                    )
+                )
+            assert len(rows) == 3, attempt
+            assert all(row.delivery_status == "pending" for row in rows), attempt
+            assert all(row.status not in {"completed", "failed", "cancelled"} for row in rows), (
+                attempt
+            )
+            detail = wait_run(client, session_id)
+            assert detail["messages"][-1]["markdown"] == "模拟资料汇总完成。", attempt
+            assert "PREMATURE" not in json.dumps(detail), attempt
+            assert "PREMATURE" not in json.dumps(stream.events), attempt
+            assert any(
+                event["event"] == "session"
+                and event["data"].get("run", {}).get("status") == "waiting_for_subagents"
+                for event in stream.events
+            ), attempt
 
 
 def test_wait_restart_and_expired_child_lease(settings):
