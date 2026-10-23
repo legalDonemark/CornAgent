@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import threading
 import time
@@ -278,9 +279,13 @@ GUARD_ROUNDS = 20  # The guard must hold on every run, not on the lucky ones.
 
 def test_guard_discards_uncollected_final_candidate(settings):
     for attempt in range(GUARD_ROUNDS):
+        # The children are held shut until this check has seen the run parked on them. Without the
+        # gate the root's premature answer only usually beats them to the guard, and a child that
+        # finishes first sends the guard down its collect path, where the run never waits at all.
+        gate = threading.Event()
         stream = FakeAgentEventStream()
         with TestClient(
-            app(settings, RootModel(premature=True), ChildModel(delay=0.05), stream)
+            app(settings, RootModel(premature=True), ChildModel(gate=gate), stream)
         ) as client:
             created = start(client)
             session_id = created["session"]["id"]
@@ -299,6 +304,7 @@ def test_guard_discards_uncollected_final_candidate(settings):
             assert all(row.status not in {"completed", "failed", "cancelled"} for row in rows), (
                 attempt
             )
+            gate.set()  # Only now may the helpers finish and the root answer for real.
             detail = wait_run(client, session_id)
             assert detail["messages"][-1]["markdown"] == "模拟资料汇总完成。", attempt
             assert "PREMATURE" not in json.dumps(detail), attempt
@@ -308,6 +314,20 @@ def test_guard_discards_uncollected_final_candidate(settings):
                 and event["data"].get("run", {}).get("status") == "waiting_for_subagents"
                 for event in stream.events
             ), attempt
+
+
+def test_the_test_waits_for_what_it_checks_never_for_a_fixed_time():
+    """The repeated guard check is only worth its green if it watched for every state it asserts."""
+    source = inspect.getsource(test_guard_discards_uncollected_final_candidate)
+    # Both states are polled for by name, through the helper every other check here uses.
+    assert 'wait_run(client, session_id, "waiting_for_subagents")' in source
+    assert "wait_run(client, session_id)" in source
+    # Nothing is waited out: no sleep, and no clock standing in for the run's own status.
+    assert "sleep" not in source
+    assert "monotonic" not in source
+    assert "timeout" not in source
+    # And the helper's window is left where every other check has it, rather than widened.
+    assert "deadline = time.monotonic() + 10" in inspect.getsource(wait_run)
 
 
 def test_wait_restart_and_expired_child_lease(settings):
