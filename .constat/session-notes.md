@@ -75,3 +75,43 @@
   而真实应用会跟随最新回答。第一条历史消息因此不在图里，它由断言覆盖。
 - 这个文件的另外 4 项检查也一并受 rAF stub 与 reduced-motion 影响，均已通过。
 - 文件从 6 项检查涨到 44 项，运行时间约 14s（原约 2s）。这是验收标准要求的 20 轮重复的代价。
+
+# Session 5 — notes
+
+## 需求 1：子任务守卫检查不再偶发失败（c17bd384-7a1d-4911-a28a-f4e7518c4adf）
+
+已完成。`server/tests/test_subagents.py::test_guard_discards_uncollected_final_candidate`
+连跑 20 轮，本机 6 次整跑（含 `taskset -c 0` 单核 3 次）全绿，共 120 轮。
+
+### 偶发的真正原因（下一个需求最该知道的）
+守卫在「这一轮模型没有工具调用、但还有 required 子任务没收取」时丢弃候选答案，
+然后**按当时的子任务状态二选一**（`app/agent/runtime.py:708` 起）：
+- 有已就绪未收取的结果 → 注入 `collect_subagent_results`，运行**不会**进入等待态；
+- 只有未结束的任务 → 注入 `wait_subagents`，运行才转为 `waiting_for_subagents`。
+
+原检查断言事件流里出现 `waiting_for_subagents`，但没有任何东西保证走第二条路：
+它只是依赖「根 Agent 的假模型通常比三个子任务先到守卫」。本机重复 100 轮失败 1 轮，
+单核 `taskset -c 0` 20 轮失败 2 轮，失败时 checkpoint 里是 `collect_subagent_results`。
+**凡是断言 `waiting_for_subagents` 的 server 检查都有同一个坑**：子任务必须被测试挡住，
+否则等待态要么不出现，要么短得来不及用 HTTP 轮询看到。
+
+### 做法（可照搬）
+- `ChildModel(gate=threading.Event())`——这个参数本来就有，`test_root_terminal_cascades_to_children`
+  等检查也在用。子任务在第二轮模型调用前阻塞，于是**守卫一定只有 pending、没有 ready**。
+- 顺序是关键：先 `wait_run(client, session_id, "waiting_for_subagents")` 轮询到等待态，
+  在那一刻读 `AgentSubagentTask` 行断言三个都还没结束、`delivery_status == "pending"`，
+  **之后**才 `gate.set()`，再 `wait_run(client, session_id)` 等完成。
+  这条新断言也是红状态的主力：不加 gate 时它在「挂起瞬间已有子任务完成」的轮次直接红。
+- 全程没有 `time.sleep`，没有调大 `wait_run` 的 10s 窗口；
+  `test_the_test_waits_for_what_it_checks_never_for_a_fixed_time` 读这项检查的源码把这点钉住
+  （`inspect.getsource`，仿 `frontend/src/agent/AgentMessageList.streaming.unit.test.ts`）。
+
+### 半真的地方
+- **检查名只有一项，20 轮在它内部循环**：pytest 的 junit 名字里会带参数 id
+  （`...[0]`），而验收标准逐字点名 `test_subagents > test_guard_discards_uncollected_final_candidate`，
+  参数化会让这个名字在 CI 报告里不存在。所以用了函数内 `for attempt in range(GUARD_ROUNDS)`，
+  每条断言都带 `attempt` 以便定位。前端（vitest）可以重复同名 `it`，pytest 不行。
+- 这项检查从 ~0.5s 涨到约 7s（20 轮各起一个 app 与一次完整编排）。
+- 红状态是概率性的：原排布下每轮约 13% 失败，20 轮整体约 95% 红。本机 4 次整跑 4 次红。
+  第一次只含检查的推送就是这个红（CI 第 1 次运行）。
+- 这个需求没有界面，所以没有截图；验收标准讲的是运行状态与事件流。
