@@ -1,0 +1,13 @@
+{
+  "branch": "constat/session-5-faf8a5c0",
+  "screens": [
+    "a run"
+  ],
+  "criteria": [
+    "\"test_subagents > test_guard_discards_uncollected_final_candidate\" passes 20 times in a row inside one CI run.",
+    "The test still checks the rule: no early answer reaches the user or the event stream, and the run is seen waiting for its helpers.",
+    "The test waits for what it checks, never for a fixed time.",
+    "Every other frontend and server test still passes."
+  ],
+  "why": "DoneMark froze these onto the attempt: the acceptance criteria of the requirement it is for, and the screens those criteria name. The picture suite runs the checks whose names are these criteria and skips the rest; where it can match none of them it narrows by these screens instead, and says so. Honoured on this branch only."
+}
